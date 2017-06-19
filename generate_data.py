@@ -6,7 +6,7 @@ total = 0
 i = 100
 while True:
     i += 100
-    command = "run-example SparkPi {} &> ./log/log_{}.txt".format(i,i)
+    command = "run-example SparkALS 100 500 10 20 {} &> ./log/log_{}.txt".format(i,i)
     os.system(command)
 
     grep = "grep -c \"speculatable\" ./log/log_{}.txt".format(i)
@@ -25,7 +25,7 @@ while True:
 
     print total
 
-    if total > 2000:
+    if total > 5000:
         break
 
 print "Stragger collected : {}".format(total)
