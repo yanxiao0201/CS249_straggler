@@ -79,8 +79,8 @@ def plot_PR_curve(classifier, X, y, n_folds=5):
 
 
 
-#data_paths = ["metrics_1.csv","metrics_2.csv","metrics_3.csv"]
-data_paths = ["metrics_3.csv"]
+data_paths = ["metrics_1.csv","metrics_2.csv","metrics_3.csv"]
+#data_paths = ["metrics_3.csv"]
 
 labels = []
 
@@ -90,18 +90,21 @@ for data_path in data_paths:
 
     with open(data_path,'r') as csv_file:
         reader = csv.reader(csv_file)
-        header = reader.next()
+        header = reader.next()[4:-1]
 
         for row in reader:
-            feature = row[3:-2]
+            feature = row[4:-1]
             feature = [float(i) for i in feature]
-            label = int(row[0])
+            label = int(row[-1])
             features.append(feature)
             labels.append(label)
 
 
+#print header
+
 total_features = np.asarray(features)
 total_labels = np.asarray(labels)
+
 
 #from sklearn.utils import shuffle
 #df = shuffle(df)
@@ -111,19 +114,38 @@ total_labels = np.asarray(labels)
 
 print "Data visualization"
 
-def draw_feature(x_fea, y_fea, total_features, total_labels):
+def draw_feature(x_fea, y_fea, total_features, total_labels, header):
     xdata = total_features[:,x_fea]
     ydata = total_features[:,y_fea]
 
-    plt.figure("Column #{} and #{}".format(x_fea+3, y_fea+3))
+    plt.figure("{} and {}".format(header[x_fea], header[y_fea]))
 
-    xdata_0 =
-    plt.plot(recall, precision, lw=1, label='PR fold %d' % (i,))
+    xdata_0 = []
+    xdata_1 = []
+    ydata_0 = []
+    ydata_1 = []
+
+    for idx, i in enumerate(total_labels):
+        if int(i) == 1:
+            xdata_1.append(xdata[idx])
+            ydata_1.append(ydata[idx])
+        else:
+            xdata_0.append(xdata[idx])
+            ydata_0.append(ydata[idx])
 
 
+    plt.scatter(xdata_0, ydata_0, label='Not straggler',color = 'b')
+    plt.scatter(xdata_1, ydata_1, label='Straggler',color = 'r')
+    plt.xlabel(header[x_fea])
+    plt.ylabel(header[y_fea])
+    plt.legend(loc="lower right")
+    plt.show()
 
 
+draw_feature(0,1,total_features,total_labels,header)
 
+
+'''
 print "train blagging"
 from blagging import BlaggingClassifier
 
@@ -134,3 +156,4 @@ bbagging = BlaggingClassifier()
 
 plot_ROC_curve(bbagging, total_features, total_labels)
 plot_PR_curve(bbagging,total_features, total_labels)
+'''
