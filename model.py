@@ -1,4 +1,4 @@
-import pandas as pd
+
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
@@ -6,18 +6,11 @@ import csv
 #matplotlib inline
 plt.rcParams['figure.figsize'] = (12, 10)
 
-from sklearn import svm, datasets
-from sklearn.utils import shuffle
-from sklearn import cross_validation, metrics
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.cross_validation import KFold, StratifiedKFold, cross_val_score
-from sklearn.metrics import auc, roc_auc_score, roc_curve, precision_recall_curve
-from sklearn.svm import SVC
-from sklearn.datasets.covtype import fetch_covtype
 
-from sklearn.neural_network import MLPClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.cross_validation import StratifiedKFold as stk
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import auc,roc_curve, precision_recall_curve,confusion_matrix,classification_report
 
 from scipy import interp
 
@@ -26,9 +19,8 @@ random_state = np.random.RandomState(42)
 def plot_ROC_curve(classifier, X, y, pos_label=1, n_folds=5):
     mean_tpr = 0.0
     mean_fpr = np.linspace(0, 1, 100)
-    all_tpr = []
     plt.figure("ROC")
-    for i, (train, test) in enumerate(StratifiedKFold(y,shuffle=True,n_folds=n_folds)):
+    for i, (train, test) in enumerate(stk(y,shuffle=True,n_folds=n_folds)):
         #print (train,test)
         #print X[train]
         probas_ = classifier.fit(X[train], y[train]).predict_proba(X[test])
@@ -60,7 +52,7 @@ def plot_PR_curve(classifier, X, y, n_folds=5):
     Plot a basic precision/recall curve.
     """
     plt.figure("PR")
-    for i, (train, test) in enumerate(StratifiedKFold(y,shuffle=True,n_folds=n_folds)):
+    for i, (train, test) in enumerate(stk(y,shuffle=True,n_folds=n_folds)):
         probas_ = classifier.fit(X[train], y[train]).predict_proba(X[test])
         # Compute ROC curve and area the curve
         precision, recall, thresholds = precision_recall_curve(y[test], probas_[:, 1],
@@ -79,8 +71,8 @@ def plot_PR_curve(classifier, X, y, n_folds=5):
 
 
 
-data_paths = ["metrics_1.csv","metrics_2.csv","metrics_3.csv"]
-#data_paths = ["metrics_3.csv"]
+#data_paths = ["metrics_1.csv","metrics_2.csv","metrics_3.csv"]
+data_paths = ["metrics_3.csv"]
 
 labels = []
 
@@ -139,21 +131,48 @@ def draw_feature(x_fea, y_fea, total_features, total_labels, header):
     plt.xlabel(header[x_fea])
     plt.ylabel(header[y_fea])
     plt.legend(loc="lower right")
-    plt.show()
-
-
-draw_feature(0,1,total_features,total_labels,header)
-
+    plt.savefig("{} and {}.png".format(header[x_fea], header[y_fea]))
 
 '''
+pairs = [0,1,2,-1,-2,-3,-4,-5,-7,-8]
+
+for i in xrange(len(pairs)-1):
+    for j in xrange(i+1,len(pairs)):
+        draw_feature(pairs[i],pairs[j],total_features,total_labels,header)
+'''
+
+
+
 print "train blagging"
 from blagging import BlaggingClassifier
 
+rfc = RandomForestClassifier(class_weight = {1:50,0:1})
 bbagging = BlaggingClassifier()
 
+skf = StratifiedKFold(n_splits=4, shuffle = True)
+for train_index, test_index in skf.split(total_features, total_labels):
+        X_train, X_test = total_features[train_index],total_features[test_index]
+        y_train, y_test = total_labels[train_index],total_labels[test_index]
+        y_proba = bbagging.fit(X_train, y_train).predict_proba(X_test)
+
+        for thres in np.arange(0.85,0.95,0.01):
+            y_pred = []
+            for entry in y_proba[:,1]:
+                if entry > thres:
+                    y_pred.append(1)
+                else:
+                    y_pred.append(0)
+
+            print "-----------------"
+            print "data for thres = {}".format(thres)
+            print confusion_matrix(y_test,y_pred)
+            target_names = ['class 0', 'class 1']
+            print classification_report(y_test,y_pred,target_names = target_names)
+
+            print "-----------------"
+
+        break
 
 
-
-plot_ROC_curve(bbagging, total_features, total_labels)
-plot_PR_curve(bbagging,total_features, total_labels)
-'''
+#plot_ROC_curve(bbagging, total_features, total_labels)
+#plot_PR_curve(bbagging,total_features, total_labels)
